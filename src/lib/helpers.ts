@@ -16,9 +16,9 @@
 /* eslint-disable jsdoc/require-jsdoc */
 
 import { AssertionError } from 'assert';
-import type jwt from 'jsonwebtoken';
-import isPlainObject from 'lodash.isplainobject';
 import type { AddressInfo } from 'net';
+
+import isPlainObject from 'lodash.isplainobject';
 
 import type { TokenRequest } from './types';
 
@@ -28,30 +28,6 @@ export function assertIsString(
 ): asserts input is string {
   if (typeof input !== 'string') {
     throw new AssertionError({ message: errorMessage });
-  }
-}
-
-export const supportedAlgs = [
-  'HS256',
-  'HS384',
-  'HS512',
-  'RS256',
-  'RS384',
-  'RS512',
-  'ES256',
-  'ES384',
-  'ES512',
-  'PS256',
-  'PS384',
-  'PS512',
-  'none',
-];
-
-export function assertIsAlgorithm(
-  input: string
-): asserts input is jwt.Algorithm {
-  if (!supportedAlgs.includes(input)) {
-    throw new AssertionError({ message: `Unssuported algorithm '${input}'` });
   }
 }
 
@@ -101,4 +77,8 @@ export function shift(arr: (string | undefined)[]): string {
   }
 
   return val;
+}
+
+export function assertKidIsDefined(kid: unknown): asserts kid is string {
+  return assertIsString(kid, "Unexpected undefined 'kid'");
 }

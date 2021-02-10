@@ -22,7 +22,6 @@
 import { IncomingMessage } from 'http';
 import express, { RequestHandler, Express } from 'express';
 import cors from 'cors';
-import bodyParser from 'body-parser';
 import basicAuth from 'basic-auth';
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,6 +34,7 @@ import type {
   MutableResponse,
   MutableToken,
   ScopesOrTransform,
+  StatusCodeMutableResponse,
 } from './types';
 import { InternalEvents, PublicEvents } from './types';
 
@@ -81,20 +81,18 @@ export class OAuth2Service extends EventEmitter {
   /**
    * Builds a JWT with a key in the keystore. The key will be selected in a round-robin fashion.
    *
-   * @param {boolean} signed A value that indicates whether or not to sign the JWT.
+   * @param {IncomingMessage} req The incoming HTTP request.
+   * @param {number} expiresIn Time in seconds for the JWT to expire. Default: 3600 seconds.
    * @param {ScopesOrTransform} [scopesOrTransform] A scope, array of scopes,
    *     or JWT transformation callback.
-   * @param {number} [expiresIn] Time in seconds for the JWT to expire. Default: 3600 seconds.
-   * @param {IncomingMessage} req The incoming HTTP request.
-   * @returns {string} The produced JWT.
+   * @returns {Promise<string>} The produced JWT.
    * @fires OAuth2Service#beforeTokenSigning
    */
-  buildToken(
-    signed: boolean,
-    scopesOrTransform: ScopesOrTransform | undefined,
+  async buildToken(
+    req: IncomingMessage,
     expiresIn: number,
-    req: IncomingMessage
-  ): string {
+    scopesOrTransform: ScopesOrTransform | undefined
+  ): Promise<string> {
     this.issuer.once(InternalEvents.BeforeSigning, (token: MutableToken) => {
       /**
        * Before token signing event.
@@ -106,12 +104,7 @@ export class OAuth2Service extends EventEmitter {
       this.emit(PublicEvents.BeforeTokenSigning, token, req);
     });
 
-    return this.issuer.buildToken(
-      signed,
-      undefined,
-      scopesOrTransform,
-      expiresIn
-    );
+    return await this.issuer.buildToken({ scopesOrTransform, expiresIn });
   }
 
   /**
@@ -131,7 +124,7 @@ export class OAuth2Service extends EventEmitter {
     app.get(JWKS_URI_PATH, this.jwksHandler);
     app.post(
       TOKEN_ENDPOINT_PATH,
-      bodyParser.urlencoded({ extended: false }),
+      express.urlencoded({ extended: false }),
       this.tokenHandler
     );
     app.get(AUTHORIZE_PATH, this.authorizeHandler);
@@ -168,10 +161,10 @@ export class OAuth2Service extends EventEmitter {
   };
 
   private jwksHandler: RequestHandler = (_req, res) => {
-    res.json(this.issuer.keys);
+    res.json({ keys: this.issuer.keys.toJSON() });
   };
 
-  private tokenHandler: RequestHandler = (req, res) => {
+  private tokenHandler: RequestHandler = async (req, res) => {
     const tokenTtl = 3600;
 
     res.set({
@@ -225,7 +218,7 @@ export class OAuth2Service extends EventEmitter {
         });
     }
 
-    const token = this.buildToken(true, xfn, tokenTtl, req);
+    const token = await this.buildToken(req, tokenTtl, xfn);
     const body: Record<string, unknown> = {
       access_token: token,
       token_type: 'Bearer',
@@ -249,7 +242,7 @@ export class OAuth2Service extends EventEmitter {
         }
       };
 
-      body.id_token = this.buildToken(true, xfn, tokenTtl, req);
+      body.id_token = await this.buildToken(req, tokenTtl, xfn);
       body.refresh_token = uuidv4();
     }
 
@@ -351,8 +344,7 @@ export class OAuth2Service extends EventEmitter {
   };
 
   private revokeHandler: RequestHandler = (req, res) => {
-    const revokeResponse: MutableResponse = {
-      body: null,
+    const revokeResponse: StatusCodeMutableResponse = {
       statusCode: 200,
     };
 
@@ -360,11 +352,11 @@ export class OAuth2Service extends EventEmitter {
      * Before revoke event.
      *
      * @event OAuth2Service#beforeRevoke
-     * @param {MutableResponse} response The response body and status code.
+     * @param {StatusCodeMutableResponse} response The response status code.
      * @param {IncomingMessage} req The incoming HTTP request.
      */
     this.emit(PublicEvents.BeforeRevoke, revokeResponse, req);
 
-    return res.status(revokeResponse.statusCode).json(revokeResponse.body);
+    return res.status(revokeResponse.statusCode).send('');
   };
 }

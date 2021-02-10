@@ -1,4 +1,5 @@
-import type { JWK } from 'node-jose';
+import { JWK } from 'jose/types';
+export type { JWK } from 'jose/types';
 
 export interface TokenRequest {
   scope?: string;
@@ -11,9 +12,8 @@ export interface TokenRequest {
 export interface Options {
   host?: string;
   port: number;
-  keys: JWK.Key[];
+  keys: JWK[];
   saveJWK: boolean;
-  savePEM: boolean;
 }
 
 export interface MutableAuthorizeRedirectUri {
@@ -26,7 +26,6 @@ export interface MutableToken {
 }
 
 export interface Header {
-  alg: string;
   kid: string;
   [key: string]: unknown;
 }
@@ -39,9 +38,12 @@ export interface Payload {
   [key: string]: unknown;
 }
 
-export interface MutableResponse {
-  body: Record<string, unknown> | null;
+export interface StatusCodeMutableResponse {
   statusCode: number;
+}
+
+export interface MutableResponse extends StatusCodeMutableResponse {
+  body: Record<string, unknown> | '';
 }
 
 export type ScopesOrTransform = string | string[] | JwtTransform;
@@ -60,4 +62,22 @@ export enum PublicEvents {
 
 export enum InternalEvents {
   BeforeSigning = 'beforeSigning',
+}
+
+export interface TokenBuildOptions {
+  /**
+   * The 'kid' of the key that will be used to sign the JWT.
+   * If omitted, the next key in the round - robin will be used.
+   */
+  kid?: string;
+
+  /**
+   * A scope, array of scopes, or JWT transformation callback.
+   */
+  scopesOrTransform?: ScopesOrTransform;
+
+  /**
+   * Time in seconds before the JWT to expire. Default: 3600 seconds.
+   */
+  expiresIn?: number;
 }
