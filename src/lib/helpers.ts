@@ -17,11 +17,11 @@
 
 import { AssertionError } from 'assert';
 import type { AddressInfo } from 'net';
+import { readFileSync } from 'fs';
 
 import isPlainObject from 'lodash.isplainobject';
 
 import type { TokenRequest } from './types';
-import { readFileSync } from 'fs';
 
 export const defaultTokenTtl = 3600;
 
