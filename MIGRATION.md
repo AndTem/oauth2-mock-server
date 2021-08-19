@@ -48,8 +48,7 @@ the pull request mentioned above.
 - Keys were previously being type [defined](https://github.com/DefinitelyTyped/DefinitelyTyped/blob/2d2c4ced74bb356ec1c7b931dedd263bcfb5c4a1/types/node-jose/index.d.ts#L254-L265)
   as `JWK.Key` from the `@types/node-jose` package.
 
-  They're now type [defined](https://github.com/panva/jose/blob/84d780208d8890453722854805cf559866a2ea51/src/types.d.ts#L9-L69) as `JWK` from
-  the `jose` package
+  They're now type defined as `JWK` and properly exported from by this package
 
 - `JWKStore.toJSON()` now directly returns a `JWK[]` rather than a Json object
   exposing a `keys` property.

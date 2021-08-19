@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [4.0.0](https://github.com/axa-group/oauth2-mock-server/compare/v3.2.0...v4.0.0) — 2021-08-TODO
 
+### Added
+
+- Support `EdDSA` algorithm
+
 ### Removed
 
 - Drop support for Node.js 10
