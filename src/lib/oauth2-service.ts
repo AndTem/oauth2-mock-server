@@ -36,7 +36,8 @@ import type {
   ScopesOrTransform,
   StatusCodeMutableResponse,
 } from './types';
-import { InternalEvents, PublicEvents } from './types';
+import { Events } from './types';
+import { InternalEvents } from './types-internals';
 
 const OPENID_CONFIGURATION_PATH = '/.well-known/openid-configuration';
 const TOKEN_ENDPOINT_PATH = '/token';
@@ -101,7 +102,7 @@ export class OAuth2Service extends EventEmitter {
        * @param {MutableToken} token The unsigned JWT header and payload.
        * @param {IncomingMessage} req The incoming HTTP request.
        */
-      this.emit(PublicEvents.BeforeTokenSigning, token, req);
+      this.emit(Events.BeforeTokenSigning, token, req);
     });
 
     return await this.issuer.buildToken({ scopesOrTransform, expiresIn });
@@ -258,7 +259,7 @@ export class OAuth2Service extends EventEmitter {
      * @param {MutableResponse} response The response body and status code.
      * @param {IncomingMessage} req The incoming HTTP request.
      */
-    this.emit(PublicEvents.BeforeResponse, tokenEndpointResponse, req);
+    this.emit(Events.BeforeResponse, tokenEndpointResponse, req);
 
     return res
       .status(tokenEndpointResponse.statusCode)
@@ -309,7 +310,7 @@ export class OAuth2Service extends EventEmitter {
      * @param {MutableAuthorizeRedirectUri} authorizeRedirectUri The redirect uri and query params to redirect to.
      * @param {IncomingMessage} req The incoming HTTP request.
      */
-    this.emit(PublicEvents.BeforeAuthorizeRedirect, authorizeRedirectUri, req);
+    this.emit(Events.BeforeAuthorizeRedirect, authorizeRedirectUri, req);
 
     // Note: This is a textbook definition of an "open redirect" vuln
     // cf. https://cwe.mitre.org/data/definitions/601.html
@@ -338,7 +339,7 @@ export class OAuth2Service extends EventEmitter {
      * @param {MutableResponse} response The response body and status code.
      * @param {IncomingMessage} req The incoming HTTP request.
      */
-    this.emit(PublicEvents.BeforeUserinfo, userInfoResponse, req);
+    this.emit(Events.BeforeUserinfo, userInfoResponse, req);
 
     res.status(userInfoResponse.statusCode).json(userInfoResponse.body);
   };
@@ -355,7 +356,7 @@ export class OAuth2Service extends EventEmitter {
      * @param {StatusCodeMutableResponse} response The response status code.
      * @param {IncomingMessage} req The incoming HTTP request.
      */
-    this.emit(PublicEvents.BeforeRevoke, revokeResponse, req);
+    this.emit(Events.BeforeRevoke, revokeResponse, req);
 
     return res.status(revokeResponse.statusCode).send('');
   };

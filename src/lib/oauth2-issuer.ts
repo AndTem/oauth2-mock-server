@@ -25,14 +25,9 @@ import { SignJWT } from 'jose/jwt/sign';
 import { parseJwk } from 'jose/jwk/parse';
 
 import { JWKStore } from './jwk-store';
-import { assertIsString, assertKidIsDefined } from './helpers';
-import {
-  Header,
-  InternalEvents,
-  MutableToken,
-  Payload,
-  TokenBuildOptions,
-} from './types';
+import { assertIsString } from './helpers';
+import { Header, MutableToken, Payload, TokenBuildOptions } from './types';
+import { InternalEvents } from './types-internals';
 
 /**
  * Represents an OAuth 2 issuer.
@@ -81,8 +76,6 @@ export class OAuth2Issuer extends EventEmitter {
     }
 
     const timestamp = Math.floor(Date.now() / 1000);
-
-    assertKidIsDefined(key.kid);
 
     const header: Header = {
       kid: key.kid,

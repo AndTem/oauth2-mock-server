@@ -15,16 +15,14 @@
  * limitations under the License.
  */
 
-import { readFile, writeFile } from 'fs';
+import { writeFile } from 'fs';
 import { promisify } from 'util';
 import path from 'path';
-import { JWK } from 'jose/types';
 
 import { OAuth2Server } from './index';
-import { assertIsString, assertKidIsDefined, shift } from './lib/helpers';
-import type { Options } from './lib/types';
+import { assertIsString, readJsonFromFile, shift } from './lib/helpers';
+import type { JWK, Options } from './lib/types';
 
-const readFileAsync = promisify(readFile);
 const writeFileAsync = promisify(writeFile);
 
 /* eslint no-console: off */
@@ -41,7 +39,7 @@ async function cli(args: string[]): Promise<OAuth2Server | null> {
   let options;
 
   try {
-    options = await parseCliArgs(args);
+    options = parseCliArgs(args);
   } catch (err) {
     console.error(err instanceof Error ? err.message : err);
     process.exitCode = 1;
@@ -53,10 +51,10 @@ async function cli(args: string[]): Promise<OAuth2Server | null> {
     return Promise.resolve(null);
   }
 
-  return startServer(options);
+  return await startServer(options);
 }
 
-async function parseCliArgs(args: string[]): Promise<Options | null> {
+function parseCliArgs(args: string[]): Options | null {
   const opts = { ...defaultOptions };
 
   while (args.length > 0) {
@@ -74,7 +72,7 @@ async function parseCliArgs(args: string[]): Promise<Options | null> {
         opts.port = parsePort(shift(args));
         break;
       case '--jwk':
-        opts.keys.push(await parseJWK(shift(args)));
+        opts.keys.push(readJsonFromFile(shift(args)));
         break;
       case '--save-jwk':
         opts.saveJWK = true;
@@ -120,14 +118,8 @@ function parsePort(portStr: string) {
   return port;
 }
 
-async function parseJWK(filename: string): Promise<JWK> {
-  const jwkStr = await readFileAsync(filename, 'utf8');
-  return JSON.parse(jwkStr) as JWK;
-}
-
 async function saveJWK(keys: JWK[]) {
   for (const key of keys) {
-    assertKidIsDefined(key.kid);
     const filename = `${key.kid}.json`;
     await writeFileAsync(filename, JSON.stringify(key, null, 2));
     console.log(`JSON web key written to file "${filename}".`);
@@ -141,21 +133,17 @@ async function startServer(opts: Options) {
     opts.keys.map(async (key) => {
       const jwk = await server.issuer.keys.add(key);
 
-      assertKidIsDefined(jwk.kid);
       console.log(`Added key with kid "${jwk.kid}"`);
     })
   );
 
   if (opts.keys.length === 0) {
     const jwk = await server.issuer.keys.generate('RS256');
-    opts.keys.push(jwk);
-
-    assertKidIsDefined(jwk.kid);
     console.log(`Generated new RSA key with kid "${jwk.kid}"`);
   }
 
   if (opts.saveJWK) {
-    await saveJWK(opts.keys);
+    await saveJWK(server.issuer.keys.toJSON(true));
   }
 
   await server.start(opts.port, opts.host);

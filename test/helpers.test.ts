@@ -5,7 +5,6 @@ import {
   assertIsPlainObject,
   assertIsString,
   assertIsValidTokenRequest,
-  assertKidIsDefined,
   shift,
 } from '../src/lib/helpers';
 
@@ -86,23 +85,6 @@ describe('helpers', () => {
       { grant_type: "g", scope: "s", code: "c" },
     ])('does not throw on valid input (%s)', (input) => {
       expect(() => assertIsValidTokenRequest(input)).not.toThrow();
-    });
-  });
-
-  describe("assertKidIsDefined", () => {
-    it.each([
-      1,
-      null,
-      undefined,
-      {},
-      [],
-      false
-    ])('throws on invalid value (%s)', (value: unknown) => {
-      expect(() => assertKidIsDefined(value)).toThrow();
-    });
-
-    it('does not throw on valid input', () => {
-      expect(() => assertKidIsDefined("a")).not.toThrow();
     });
   });
 

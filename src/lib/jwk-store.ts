@@ -27,38 +27,47 @@ import {
 } from 'jose/util/generate_key_pair';
 import { fromKeyLike } from 'jose/jwk/from_key_like';
 import { parseJwk } from 'jose/jwk/parse';
-import type { JWK } from 'jose/types';
 
-import { assertIsString } from './helpers';
+import { JWK } from './types';
+import { JWKWithKid } from './types-internals';
 
 const generateRandomKid = () => {
   return randomBytes(40).toString('hex');
 };
 
-const removeKey = (k: string, obj: Record<string, unknown>) => {
-  const x = { ...obj };
-  delete x[k];
-  return x;
-};
-
-const removeKeys = (keys: string[], o: Record<string, unknown>) =>
-  keys.reduce((r, k) => removeKey(k, r), o);
-
 type JwkTransformer = (jwk: JWK) => JWK;
 
 const RsaPrivateFieldsRemover: JwkTransformer = (jwk) => {
-  return removeKeys(['d', 'p', 'q', 'dp', 'dq', 'qi'], jwk);
+  const x = { ...jwk };
+
+  delete x.d;
+  delete x.p;
+  delete x.q;
+  delete x.dp;
+  delete x.dq;
+  delete x.qi;
+
+  return x;
 };
 
 const EcdsaPrivateFieldsRemover: JwkTransformer = (jwk) => {
-  return removeKeys(['d'], jwk);
+  const x = { ...jwk };
+
+  delete x.d;
+
+  return x;
 };
 
 const EddsaPrivateFieldsRemover: JwkTransformer = (jwk) => {
-  return removeKeys(['d'], jwk);
+  const x = { ...jwk };
+
+  delete x.d;
+
+  return x;
 };
 
 const privateToPublicTransformerMap: Record<string, JwkTransformer> = {
+  // RSASSA-PKCS1-v1_5
   RS256: RsaPrivateFieldsRemover,
   RS384: RsaPrivateFieldsRemover,
   RS512: RsaPrivateFieldsRemover,
@@ -80,7 +89,10 @@ const privateToPublicTransformerMap: Record<string, JwkTransformer> = {
 
 const supportedAlgs = Object.keys(privateToPublicTransformerMap);
 
-const normalizeKey = (jwk: JWK, opts?: { kid?: string }): void => {
+function normalizeKey(
+  jwk: Record<string, unknown>,
+  opts?: { kid?: string }
+): asserts jwk is JWKWithKid {
   if (jwk.kid !== undefined) {
     return;
   }
@@ -90,7 +102,7 @@ const normalizeKey = (jwk: JWK, opts?: { kid?: string }): void => {
   } else {
     jwk.kid = generateRandomKid();
   }
-};
+}
 
 /**
  * Simple JWK store
@@ -122,11 +134,12 @@ export class JWKStore {
       opts !== undefined && opts.crv !== undefined ? { crv: opts.crv } : {};
 
     const pair = await generateKeyPair(alg, generateOpts);
-    const jwk = await fromKeyLike(pair.privateKey);
+    const joseJwk = await fromKeyLike(pair.privateKey);
 
-    jwk.alg = alg;
-    normalizeKey(jwk, opts);
+    normalizeKey(joseJwk, opts);
+    joseJwk.alg = alg;
 
+    const jwk = joseJwk as JWK;
     this.#keyRotator.add(jwk);
     return jwk;
   }
@@ -134,23 +147,25 @@ export class JWKStore {
   /**
    * Adds a JWK key to this keystore.
    *
-   * @param {JWK} jwk The JWK key to add.
+   * @param {object} maybeJwk The JWK key to add.
    * @returns {Promise<JWK>} The promise for the added key.
    */
-  async add(jwk: JWK): Promise<JWK> {
-    const jwkUse: JWK = { ...jwk };
+  async add(maybeJwk: Record<string, unknown>): Promise<JWK> {
+    const tempJwk = { ...maybeJwk };
 
-    normalizeKey(jwkUse);
+    normalizeKey(tempJwk);
 
-    if (jwkUse.alg === undefined) {
+    if (tempJwk.alg === undefined) {
       throw new Error('Unspecified JWK "alg" property');
     }
 
-    if (!supportedAlgs.includes(jwkUse.alg)) {
-      throw new Error(`Unsupported JWK "alg" value ("${jwkUse.alg}")`);
+    if (!supportedAlgs.includes(tempJwk.alg)) {
+      throw new Error(`Unsupported JWK "alg" value ("${tempJwk.alg}")`);
     }
 
-    const privateKey = await parseJwk(jwkUse);
+    const jwk = tempJwk as JWK;
+
+    const privateKey = await parseJwk(jwk);
 
     if (!(privateKey instanceof KeyObject) || privateKey.type !== 'private') {
       throw new Error(
@@ -158,9 +173,9 @@ export class JWKStore {
       );
     }
 
-    this.#keyRotator.add(jwkUse);
+    this.#keyRotator.add(jwk);
 
-    return jwkUse;
+    return jwk;
   }
 
   /**
@@ -217,12 +232,6 @@ class KeyRotator {
       if (includePrivateFields) {
         keys.push({ ...key });
         continue;
-      }
-
-      assertIsString(key.alg, 'Missing "alg" field');
-
-      if (!(key.alg in privateToPublicTransformerMap)) {
-        throw new Error(`Unsupported JWK "alg" value ("${key.alg}")`);
       }
 
       const cleaner = privateToPublicTransformerMap[key.alg];

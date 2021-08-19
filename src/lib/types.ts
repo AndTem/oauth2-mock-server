@@ -1,5 +1,4 @@
-import { JWK } from 'jose/types';
-export type { JWK } from 'jose/types';
+import { JWKWithKid } from './types-internals';
 
 export interface TokenRequest {
   scope?: string;
@@ -12,7 +11,7 @@ export interface TokenRequest {
 export interface Options {
   host?: string;
   port: number;
-  keys: JWK[];
+  keys: Record<string, unknown>[];
   saveJWK: boolean;
 }
 
@@ -52,16 +51,12 @@ export interface JwtTransform {
   (header: Header, payload: Payload): void;
 }
 
-export enum PublicEvents {
+export enum Events {
   BeforeTokenSigning = 'beforeTokenSigning',
   BeforeResponse = 'beforeResponse',
   BeforeUserinfo = 'beforeUserinfo',
   BeforeRevoke = 'beforeRevoke',
   BeforeAuthorizeRedirect = 'beforeAuthorizeRedirect',
-}
-
-export enum InternalEvents {
-  BeforeSigning = 'beforeSigning',
 }
 
 export interface TokenBuildOptions {
@@ -80,4 +75,8 @@ export interface TokenBuildOptions {
    * Time in seconds before the JWT to expire. Default: 3600 seconds.
    */
   expiresIn?: number;
+}
+
+export interface JWK extends JWKWithKid {
+  alg: string;
 }

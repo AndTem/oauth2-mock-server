@@ -21,6 +21,7 @@ import type { AddressInfo } from 'net';
 import isPlainObject from 'lodash.isplainobject';
 
 import type { TokenRequest } from './types';
+import { readFileSync } from 'fs';
 
 export function assertIsString(
   input: unknown,
@@ -79,6 +80,15 @@ export function shift(arr: (string | undefined)[]): string {
   return val;
 }
 
-export function assertKidIsDefined(kid: unknown): asserts kid is string {
-  return assertIsString(kid, "Unexpected undefined 'kid'");
-}
+export const readJsonFromFile = (filepath: string): Record<string, unknown> => {
+  const content = readFileSync(filepath, 'utf8');
+
+  const maybeJson = JSON.parse(content) as unknown;
+
+  assertIsPlainObject(
+    maybeJson,
+    `File "${filepath}" doesn't contain a properly JSON serialized object.`
+  );
+
+  return maybeJson;
+};
