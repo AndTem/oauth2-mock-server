@@ -23,6 +23,8 @@ import isPlainObject from 'lodash.isplainobject';
 import type { TokenRequest } from './types';
 import { readFileSync } from 'fs';
 
+export const defaultTokenTtl = 3600;
+
 export function assertIsString(
   input: unknown,
   errorMessage: string

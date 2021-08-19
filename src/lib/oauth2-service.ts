@@ -27,7 +27,11 @@ import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 
 import { OAuth2Issuer } from './oauth2-issuer';
-import { assertIsString, assertIsValidTokenRequest } from './helpers';
+import {
+  assertIsString,
+  assertIsValidTokenRequest,
+  defaultTokenTtl,
+} from './helpers';
 import type {
   JwtTransform,
   MutableAuthorizeRedirectUri,
@@ -166,7 +170,7 @@ export class OAuth2Service extends EventEmitter {
   };
 
   private tokenHandler: RequestHandler = async (req, res) => {
-    const tokenTtl = 3600;
+    const tokenTtl = defaultTokenTtl;
 
     res.set({
       'Cache-Control': 'no-store',

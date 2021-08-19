@@ -25,7 +25,7 @@ import { SignJWT } from 'jose/jwt/sign';
 import { parseJwk } from 'jose/jwk/parse';
 
 import { JWKStore } from './jwk-store';
-import { assertIsString } from './helpers';
+import { assertIsString, defaultTokenTtl } from './helpers';
 import { Header, MutableToken, Payload, TokenBuildOptions } from './types';
 import { InternalEvents } from './types-internals';
 
@@ -86,7 +86,7 @@ export class OAuth2Issuer extends EventEmitter {
     const payload: Payload = {
       iss: this.url,
       iat: timestamp,
-      exp: timestamp + (opts?.expiresIn ?? 3600),
+      exp: timestamp + (opts?.expiresIn ?? defaultTokenTtl),
       nbf: timestamp - 10,
     };
 
