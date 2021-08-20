@@ -33,6 +33,7 @@
   },
   "files": [
     "CHANGELOG.md",
+    "MIGRATION.md",
     "LICENSE.md",
     "README.md",
     "dist/**/*.*"
