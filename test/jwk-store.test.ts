@@ -239,7 +239,7 @@ describe('JWK Store', () => {
       for (const key of jwks) {
         expect(key).toBeInstanceOf(Object);
         expect(key).toHaveProperty("kid");
-        expect(typeof (key as Record<string, unknown>).kid).toBe("string");
+        expect(typeof (key).kid).toBe("string");
       }
 
       expect(jwks.map((key) => key.kid).sort()).toEqual(['key-one', 'key-three', 'key-two']);

@@ -89,7 +89,7 @@ const privateToPublicTransformerMap: Record<string, JwkTransformer> = {
 
 const supportedAlgs = Object.keys(privateToPublicTransformerMap);
 
-function normalizeKey(
+function normalizeKeyKid(
   jwk: Record<string, unknown>,
   opts?: { kid?: string }
 ): asserts jwk is JWKWithKid {
@@ -136,7 +136,7 @@ export class JWKStore {
     const pair = await generateKeyPair(alg, generateOpts);
     const joseJwk = await fromKeyLike(pair.privateKey);
 
-    normalizeKey(joseJwk, opts);
+    normalizeKeyKid(joseJwk, opts);
     joseJwk.alg = alg;
 
     const jwk = joseJwk as JWK;
@@ -153,7 +153,7 @@ export class JWKStore {
   async add(maybeJwk: Record<string, unknown>): Promise<JWK> {
     const tempJwk = { ...maybeJwk };
 
-    normalizeKey(tempJwk);
+    normalizeKeyKid(tempJwk);
 
     if (tempJwk.alg === undefined) {
       throw new Error('Unspecified JWK "alg" property');
